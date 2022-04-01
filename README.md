@@ -4,8 +4,8 @@ Simple node deletion tool for onnx.
 ## 1. Setup
 ```bash
 ### option
-$ echo export PATH="~/.local/bin:$PATH" >> ~/.bashrc
-$ source ~/.bashrc
+$ echo export PATH="~/.local/bin:$PATH" >> ~/.bashrc \
+&& source ~/.bashrc
 
 ### run
 $ pip install -U onnx \
