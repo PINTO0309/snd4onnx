@@ -3,6 +3,11 @@ Simple node deletion tool for onnx.
 
 ## 1. Setup
 ```bash
+### option
+$ echo export PATH="~/.local/bin:$PATH" >> ~/.bashrc
+$ source ~/.bashrc
+
+### run
 $ pip install -U onnx \
 && python3 -m pip install -U onnx_graphsurgeon --index-url https://pypi.ngc.nvidia.com \
 && pip install -U snd4onnx
