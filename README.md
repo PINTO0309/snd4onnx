@@ -22,8 +22,8 @@ $ snd4onnx -h
 usage: snd4onnx [-h] onnx_file_path remove_node_names
 
 positional arguments:
-  onnx_file_path
-  remove_node_names
+  onnx_file_path     Input onnx file path.
+  remove_node_names  ONNX node name to be deleted. Comma delimited.
 
 optional arguments:
   -h, --help         show this help message and exit
