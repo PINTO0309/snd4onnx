@@ -1,6 +1,8 @@
 # snd4onnx
 Simple node deletion tool for onnx.
 
+[![Downloads](https://static.pepy.tech/personalized-badge/snd4onnx?period=total&units=none&left_color=grey&right_color=brightgreen&left_text=Downloads)](https://pepy.tech/project/snd4onnx) ![GitHub](https://img.shields.io/github/license/PINTO0309/snd4onnx?color=2BAF2B) [![PyPI](https://img.shields.io/pypi/v/snd4onnx?color=2BAF2B)](https://pypi.org/project/snd4onnx/)
+
 ## 1. Setup
 ```bash
 ### option
