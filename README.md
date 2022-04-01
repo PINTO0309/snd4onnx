@@ -19,7 +19,7 @@ $ pip install -U onnx \
 ```bash
 $ snd4onnx -h
 
-usage: onnx_remove_node.py [-h] onnx_file_path remove_node_names
+usage: snd4onnx [-h] onnx_file_path remove_node_names
 
 positional arguments:
   onnx_file_path
