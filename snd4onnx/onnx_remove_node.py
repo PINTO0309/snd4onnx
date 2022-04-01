@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import os
 import sys
 import shutil
@@ -37,8 +39,8 @@ OP_TYPES_WITH_AUTOMATIC_ADJUSTMENT_OF_OUTPUT_SHAPE = [
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('onnx_file_path', type=str, required=True, help='Input onnx file path.')
-    parser.add_argument('remove_node_names', type=str, required=True, help='ONNX node name to be deleted. Comma delimited.')
+    parser.add_argument('onnx_file_path', type=str, help='Input onnx file path.')
+    parser.add_argument('remove_node_names', type=str, help='ONNX node name to be deleted. Comma delimited.')
     args = parser.parse_args()
 
 
