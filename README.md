@@ -59,3 +59,5 @@ $ snd4onnx input.onnx node_name_a
 ## 5. Reference
 1. https://docs.nvidia.com/deeplearning/tensorrt/onnx-graphsurgeon/docs/index.html
 2. https://github.com/NVIDIA/TensorRT/tree/main/tools/onnx-graphsurgeon
+3. https://github.com/PINTO0309/scs4onnx
+4. https://github.com/PINTO0309/sne4onnx
