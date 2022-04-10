@@ -1,13 +1,23 @@
 
 from setuptools import setup, find_packages
+from os import path
+import re
+
+package_name="snd4onnx"
+root_dir = path.abspath(path.dirname(__file__))
 
 with open("README.md") as f:
     long_description = f.read()
 
+with open(path.join(root_dir, package_name, '__init__.py')) as f:
+    init_text = f.read()
+    version = re.search(r'__version__\s*=\s*[\'\"](.+?)[\'\"]', init_text).group(1)
+
 setup(
-    name="snd4onnx",
-    version="0.0.2",
-    description="Simple node deletion tool for onnx.",
+    name=package_name,
+    version=version,
+    description=\
+        "Simple node deletion tool for onnx.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Katsuya Hyodo",
@@ -19,7 +29,7 @@ setup(
     python_requires=">=3.6",
     entry_points={
         'console_scripts': [
-            "snd4onnx = snd4onnx.onnx_remove_node:main"
+            "snd4onnx=snd4onnx:main"
         ]
     }
 )

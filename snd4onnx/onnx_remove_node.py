@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 import onnx
 import onnx_graphsurgeon as gs
 from onnx_graphsurgeon.ir.tensor import Variable
+from typing import List
 
 class Color:
     BLACK          = '\033[30m'
@@ -37,20 +38,38 @@ OP_TYPES_WITH_AUTOMATIC_ADJUSTMENT_OF_OUTPUT_SHAPE = [
     'Cast',
 ]
 
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('onnx_file_path', type=str, help='Input onnx file path.')
-    parser.add_argument('remove_node_names', type=str, help='ONNX node name to be deleted. Comma delimited.')
-    args = parser.parse_args()
+def remove(
+    onnx_file_path: str,
+    remove_node_names: List[str],
+):
+    """
+    Parameters
+    ----------
+    onnx_file_path: str
+        Input onnx file paths.
 
+    remove_node_names: List[str]
+        List of OP names to be deleted.\n\
+        e.g. remove_node_names = ['op_name1', 'op_name2', 'op_name3', ...]
+    """
 
-    work_file_path = shutil.copy(args.onnx_file_path, f'{os.path.splitext(args.onnx_file_path)[0]}_removed.onnx')
+    # file existence check
+    if not os.path.exists(onnx_file_path) or \
+        not os.path.isfile(onnx_file_path) or \
+        not os.path.splitext(onnx_file_path)[-1] == '.onnx':
+        print(
+            f'{Color.RED}ERROR:{Color.RESET} '+
+            f'The specified file (.onnx) does not exist. or not an onnx file. File: {onnx_file_path}'
+        )
+        sys.exit(1)
+
+    work_file_path = shutil.copy(onnx_file_path, f'{os.path.splitext(onnx_file_path)[0]}_removed.onnx')
 
     graph = gs.import_onnx(onnx.load(work_file_path))
-    remove_node_names = args.remove_node_names.split(',')
+    remove_node_names = remove_node_names.split(',')
     remove_nodes = [node for node in graph.nodes if node.name in remove_node_names]
 
-    # 必要最低限のノード数は２以上
+    # Minimum number of nodes required is 2 or more
     if len(graph.nodes) < 2:
         print(
             f'{Color.RED}ERROR:{Color.RESET} '+
@@ -58,7 +77,7 @@ def main():
         )
         sys.exit(0)
 
-    # 削除後の最低限のノード数は１以上
+    # Minimum number of nodes after deletion is at least 1
     if (len(graph.nodes) - len(remove_nodes)) < 1:
         print(
             f'{Color.RED}ERROR:{Color.RESET} '+
@@ -68,16 +87,16 @@ def main():
 
 
     with graph.node_ids():
-        # 削除ノードごとに繰り返し処理
+        # Iteration for each node to be deleted
         for rmnode in remove_nodes:
-            # グラフの最初のOPかどうかをチェック
+            # Check if it is the first OP of the graph
             rmnode_inputs = []
             matched_graph_input = []
             rmnode_is_first_op = False
             for rmnode_input in rmnode.inputs:
-                # インプットの型がVariableのもののみをチェック対象にする
+                # Only those with Variable input type are checked
                 if isinstance(rmnode_input, Variable):
-                    # グラフのいずれかのInputと一致するかどうかをチェック
+                    # Check if it matches one of the Inputs in the graph
                     for graph_input in graph.inputs:
                         if rmnode_input == graph_input:
                             rmnode_is_first_op = True
@@ -85,14 +104,14 @@ def main():
                             rmnode_inputs.append(rmnode_input)
                             break
 
-            # グラフの最後のOPかどうかをチェック
+            # Check if it is the last OP in the graph
             rmnode_outputs = []
             matched_graph_output = []
             rmnode_is_last_op = False
             for rmnode_output in rmnode.outputs:
-                # アウトプットの型がVariableのもののみをチェック対象にする
+                # Check only those outputs of type Variable
                 if isinstance(rmnode_output, Variable):
-                    # グラフのいずれかのOutputと一致するかどうかをチェック
+                    # Check if it matches any of the Outputs in the graph
                     for graph_output in graph.outputs:
                         if rmnode_output == graph_output:
                             rmnode_is_last_op = True
@@ -100,7 +119,7 @@ def main():
                             rmnode_outputs.append(rmnode_output)
                             break
 
-            # グラフの入力OPが２個以上連結されたOPは削除不可とする
+            # OPs with two or more input OPs of a graph connected are not allowed to be deleted
             if len(matched_graph_input) >= 2:
                 print(
                     f'{Color.RED}ERROR:{Color.RESET} '+
@@ -108,7 +127,9 @@ def main():
                     f'node_name: {rmnode.name}'
                 )
                 sys.exit(0)
-            # 削除対象のノードが最終Outputの１つ以上を担っていた場合、グラフの最終Outputから削除対象ノードの出力分だけを全部削除する。ただし、グラフの最終Outputが１個以上残ること
+            # If the node to be deleted is responsible for one or more of the final Outputs,
+            # delete all of the outputs of the node to be deleted from the final Outputs of the graph.
+            # However, at least one final Output of the graph must remain.
             final_graph_output_count = len(graph.outputs)
             remove_outputs = []
             for rmnode_output in rmnode.outputs:
@@ -117,8 +138,10 @@ def main():
                         if rmnode_output == graph_output:
                             final_graph_output_count -= 1
                             remove_outputs.append(rmnode_output)
-            # 削除対象のノードが最終Outputの１つ以上を担っていた場合、グラフの最終Outputから削除対象ノードの出力分だけを全部削除
-            # ただし、削除した結果、OPの出力数が１個以上残る場合のみとし、OPの出力数がゼロ個になる場合は削除しない
+            # If the node to be deleted is responsible for one or more of the final outputs,
+            # delete all the outputs of the node to be deleted from the final output of the graph.
+            # However, only when the number of outputs of the OP remains one or more as a result of the deletion,
+            # and not when the number of outputs of the OP becomes zero.
             if len(remove_outputs) > 0 and (len(rmnode.outputs) - len(remove_outputs)) >= 1:
                 tmp_graph_outputs = []
                 for graph_output in graph.outputs:
@@ -131,28 +154,38 @@ def main():
                     if not remove_flg:
                         tmp_graph_outputs.append(graph_output)
                 graph.outputs = tmp_graph_outputs
-                # 削除対象OPの出力のうち、グラフ出力に採用されていた出力情報を抹消する
+                # Among the outputs of the OP to be deleted,
+                # the output information that was employed for the graph output is deleted.
                 for remove_output in remove_outputs:
                     rmnode.outputs.remove(remove_output)
 
             if rmnode_is_first_op:
-                # グラフの最初のOPだった場合はグラフのInputを削除するOPの次のOPのInputに変更する
-                # ノードの数は２個以上に限定されているので必ず次のノードがあることが確定している
+                # If it is the first OP of the graph,
+                # change the Input of the graph to the Input of the next OP of the OP to be deleted.
+                # The number of nodes is limited to two or more,
+                # so there is always a definite next node
 
-                # 削除対象OPの出力のうち、グラフの最終出力に採用されていなかった出力の数が２個以上残っている場合は、残っている出力を全てグラフのInputに指定する
-                # 削除対象のOPのrmnode.o()をもとにして次のOPを特定し、次のOPのInputにグラフのInputを指定する
+                # If two or more outputs of the OP to be deleted remain that have not been adopted as the final output of the graph,
+                # designate all remaining outputs as Inputs of the graph.
+                # Identify the next OP based on rmnode.o() of the OP to be deleted,
+                # and specify the Input of the graph for the Input of the next OP.
                 try:
                     input_change_var_idxs = [idx for idx, input_change_var in enumerate(rmnode.o().inputs) if isinstance(input_change_var, Variable)]
                 except:
-                    # グラフの入力に直結されていて、なおかつ中間に位置し、なおかつグラフの出力に直結されている場合は出力レイヤーが取得できずにエラーになることが避けられない
-                    # したがって、事前チェック不可能なこの状況をあえて例外で捕捉し、エラーメッセージを設定して強制終了する
+                    # If it is directly connected to the input of the graph, and yet it is located in the middle,
+                    # and yet it is directly connected to the output of the graph,
+                    # it is inevitable that an error will occur because the output layer cannot be obtained.
+                    # Therefore, this situation, which cannot be checked in advance,
+                    # is daringly caught by exception, setting an error message and forcing termination.
                     print(
                         f'{Color.RED}ERROR:{Color.RESET} '+
                         'OPs connected to the input and output of a graph simultaneously cannot be deleted.'
                     )
                     sys.exit(0)
                 if len(input_change_var_idxs) < len(rmnode_inputs):
-                    # 削除するOPの入力数(Variable数)と削除OPの次のOPの入力数(Variable数)が異なる場合は繋げられないので削除不可
+                    # If the number of inputs (Variable) of the OP to be deleted
+                    # and the number of inputs (Variable) of the next OP after the deleted OP are different,
+                    # the OP cannot be deleted because it cannot be connected.
                     print(
                         f'{Color.RED}ERROR:{Color.RESET} '+
                         'If the number of inputs (Variable) of the OP to be deleted '+
@@ -164,23 +197,25 @@ def main():
                         f'Remove OP inputs: {len(rmnode_inputs)}, Next OP inputs: {len(input_change_var_idxs)}'
                     )
                     sys.exit(0)
-                # 削除対象OPの入力だったものを削除対象OPの次の入力に再設定
-                # ただし、無条件に先頭から順番にセットしていくので入力の順序の確からしさは一切検証できない
+                # Reset what was the input of the OP to be deleted to the next input of the OP to be deleted.
+                # However, the order of input cannot be verified at all,
+                # because it is set unconditionally from the first to the last.
                 for input_change_vars_idx, rmnode_input in zip(input_change_var_idxs, rmnode_inputs):
                     change_output_shape = None
                     next_op_index = None
                     if len(rmnode.o().inputs[input_change_vars_idx].outputs) == 1:
-                        # 次のOPが入力形状に対して出力形状が変わらないことが分かっているオペレーションタイプのみ変更後の出力形状を記憶する
+                        # Memorize the modified output shape only for operation types where the next OP
+                        # is known to not change the output shape relative to the input shape.
                         if rmnode.o().inputs[input_change_vars_idx].outputs[0].op in OP_TYPES_WITH_AUTOMATIC_ADJUSTMENT_OF_OUTPUT_SHAPE:
                             change_output_shape = rmnode_input.shape
                             next_op_index = rmnode.o().inputs[input_change_vars_idx].outputs[0].id
 
 
-                    # 削除対象OPの入力にグラフの入力以外のOPの入力があるかどうかをチェック
+                    # Check if the input of the OP to be deleted has an OP input other than the input of the graph
                     rmnode_inputs_not_in_graph_inputs = {idx: rmnode_input for idx, rmnode_input in enumerate(rmnode.inputs) if isinstance(rmnode_input, Variable)}
                     if len(rmnode_inputs_not_in_graph_inputs) >= 1:
-                        # 削除対象OPの次のOPの入力に削除対象OPの前のOPの出力を設定する
-                        # 複数ある入力のうち、いちばん連番が小さい入力を強制的に採用する
+                        # Set the output of the OP before the OP to be deleted to the input of the OP following the OP to be deleted.
+                        # Force the input with the smallest sequential number among multiple inputs.
                         for idx, rmnode_input in enumerate(rmnode.o().inputs):
                             for rmnode_output in rmnode.outputs:
                                 if rmnode_input == rmnode_output:
@@ -196,34 +231,35 @@ def main():
                             'before and after the OP to be deleted. Check the graph carefully.'
                         )
 
-                        # 次のOPのOutputの形状を強制的に削除対象OPの入力形状にフィットさせる
+                        # Forces the shape of the Output of the next OP to fit the input shape of the OP to be deleted.
                         if change_output_shape is not None:
                             for output in graph.nodes[next_op_index].outputs:
                                 if isinstance(output, Variable):
                                     output.shape = change_output_shape
                                     break
 
-                # 削除対象OPの出力をすべてクリア
+                # Clear all output of OPs to be deleted
                 rmnode.outputs.clear()
 
             if rmnode_is_last_op:
-                # グラフの最後のOPだった場合
-                # 削除対象OPのInputに指定されていた出力をグラフの出力に再設定する
+                # If it was the last OP in the graph
+                # Reassign the output specified as Input for the OP to be deleted to the output of the graph.
 
-                # 削除対象OPのOutputをグラフのOutputから削除
+                # Deletes the Output of the OP to be deleted from the Output of the graph.
                 for remove_output in matched_graph_output:
                     if remove_output in graph.outputs:
                         graph.outputs.remove(remove_output)
-                # 削除対象OPのInputをグラフのOutputに追加
+                # Add the Input of the OP to be deleted to the Output of the graph.
                 for rmnode_input in rmnode.inputs:
                     graph.outputs.append(rmnode_input)
-                # 削除対象OPの出力をすべてクリア
+                # Clear all output of OPs to be deleted
                 rmnode.outputs.clear()
 
             if not rmnode_is_first_op and not rmnode_is_last_op:
-                # 最初のOPでも最後のOPでもなかった場合
-                # 削除対象OPのInputに指定されていたものを次のOPのInputに再指定する
-                # ただし、削除対象OPのInputの数と次のOPのInputの数に乖離があるときはエラーとする
+                # If it was neither the first nor the last OP
+                # Re-designate what was designated as Input of the OP to be deleted as Input of the next OP.
+                # However, if there is a gap between the number of inputs in the OP to be deleted
+                # and the number of inputs in the next OP, an error occurs.
                 inp_node = rmnode.i()
                 out_node = rmnode.o()
 
@@ -246,11 +282,12 @@ def main():
                 for output_change_var_idx, input_change_var_idx in zip(output_change_var_idxs, input_change_var_idxs):
                     rmnode.i().outputs[output_change_var_idx] = rmnode.o().inputs[input_change_var_idx]
 
-                # 削除対象OPの出力をすべてクリア
+                # Clear all output of OPs to be deleted
                 rmnode.outputs.clear()
 
             if rmnode_is_first_op and rmnode_is_last_op:
-                # 最初のOPでもあり最後のOPでもあった場合は複雑なので処理不能として当面はワーニングにする
+                # If it is both the first and the last OP,
+                # it is considered too complicated to process and is warn for the time being.
                 print(
                     f'{Color.YELLOW}WARNING:{Color.RESET} '+
                     'Since the OP to be deleted is both the beginning and the end of the graph, '+
@@ -260,7 +297,7 @@ def main():
 
     graph.cleanup().toposort()
 
-    # 未使用となったグラフのInputがあれば削除
+    # Delete any unused graph inputs
     remove_graph_inputs = []
     for graph_input in graph.inputs:
         graph_unused_input = True
@@ -289,6 +326,30 @@ def main():
             'Be sure to open the .onnx file to verify the certainty of the geometry.'
         )
     onnx.save(new_model, f'{work_file_path}')
+
+
+def main():
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--onnx_file_path',
+        type=str,
+        required=True,
+        help='Input onnx file path.'
+    )
+    parser.add_argument(
+        '--remove_node_names',
+        type=str,
+        required=True,
+        nargs='+',
+        help='ONNX node name to be deleted.'
+    )
+    args = parser.parse_args()
+
+    remove(
+        onnx_file_path=args.onnx_file_path,
+        remove_node_names=args.remove_node_names,
+    )
+
 
 if __name__ == '__main__':
     main()
