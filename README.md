@@ -61,3 +61,4 @@ $ snd4onnx input.onnx node_name_a
 2. https://github.com/NVIDIA/TensorRT/tree/main/tools/onnx-graphsurgeon
 3. https://github.com/PINTO0309/scs4onnx
 4. https://github.com/PINTO0309/sne4onnx
+5. https://github.com/PINTO0309/snc4onnx
