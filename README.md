@@ -4,6 +4,7 @@ Simple node deletion tool for onnx. I only test very miscellaneous and limited p
 [![Downloads](https://static.pepy.tech/personalized-badge/snd4onnx?period=total&units=none&left_color=grey&right_color=brightgreen&left_text=Downloads)](https://pepy.tech/project/snd4onnx) ![GitHub](https://img.shields.io/github/license/PINTO0309/snd4onnx?color=2BAF2B) [![PyPI](https://img.shields.io/pypi/v/snd4onnx?color=2BAF2B)](https://pypi.org/project/snd4onnx/) [![CodeQL](https://github.com/PINTO0309/snd4onnx/workflows/CodeQL/badge.svg)](https://github.com/PINTO0309/snd4onnx/actions?query=workflow%3ACodeQL)
 
 ## 1. Setup
+### 1-1. HostPC
 ```bash
 ### option
 $ echo export PATH="~/.local/bin:$PATH" >> ~/.bashrc \
@@ -13,6 +14,18 @@ $ echo export PATH="~/.local/bin:$PATH" >> ~/.bashrc \
 $ pip install -U onnx \
 && python3 -m pip install -U onnx_graphsurgeon --index-url https://pypi.ngc.nvidia.com \
 && pip install -U snd4onnx
+```
+### 1-2. Docker
+```bash
+### docker pull
+$ docker pull pinto0309/snd4onnx:latest
+
+### docker build
+$ docker build -t pinto0309/snd4onnx:latest .
+
+### docker run
+$ docker run --rm -it -v `pwd`:/workdir pinto0309/snd4onnx:latest
+$ cd /workdir
 ```
 
 ## 2. CLI Usage
