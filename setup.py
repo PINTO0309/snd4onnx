@@ -6,7 +6,7 @@ with open("README.md") as f:
 
 setup(
     name="snd4onnx",
-    version="0.0.2",
+    version="1.0.0",
     description="Simple node deletion tool for onnx.",
     long_description=long_description,
     long_description_content_type="text/markdown",
