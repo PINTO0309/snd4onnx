@@ -34,18 +34,22 @@ $ snd4onnx -h
 
 usage:
   snd4onnx [-h]
-    --onnx_file_path ONNX_FILE_PATH
     --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
+    --input_onnx_file_path INPUT_ONNX_FILE_PATH
+    --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
 
 optional arguments:
   -h, --help
         show this help message and exit
 
-  --onnx_file_path ONNX_FILE_PATH
-        Input onnx file path.
-
   --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
         ONNX node name to be deleted.
+
+  --input_onnx_file_path INPUT_ONNX_FILE_PATH
+        Input onnx file path.
+
+  --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
+        Output onnx file path.
 ```
 
 ## 3. In-script Usage
@@ -55,32 +59,60 @@ optional arguments:
 
 Help on function remove in module snd4onnx.onnx_remove_node:
 
-remove(onnx_file_path: str, remove_node_names: List[str])
+remove(
+    remove_node_names: List[str],
+    input_onnx_file_path: Union[str, NoneType] = '',
+    output_onnx_file_path: Union[str, NoneType] = '',
+    onnx_graph: Union[onnx.onnx_ml_pb2.ModelProto, NoneType] = None
+) -> onnx.onnx_ml_pb2.ModelProto
 
     Parameters
     ----------
-    onnx_file_path: str
-        Input onnx file paths.
-
     remove_node_names: List[str]
         List of OP names to be deleted.
         e.g. remove_node_names = ['op_name1', 'op_name2', 'op_name3', ...]
+
+    input_onnx_file_path: Optional[str]
+        Input onnx file path.
+        Either input_onnx_file_path or onnx_graph must be specified.
+
+    output_onnx_file_path: Optional[str]
+        Output onnx file path.
+        If output_onnx_file_path is not specified, no .onnx file is output.
+
+    onnx_graph: Optional[onnx.ModelProto]
+        onnx.ModelProto.
+        Either input_onnx_file_path or onnx_graph must be specified.
+        onnx_graph If specified, ignore input_onnx_file_path and process onnx_graph.
+
+    Returns
+    -------
+    removed_graph: onnx.ModelProto
+        OP removed onnx ModelProto.
 ```
 
 ## 4. CLI Execution
 ```bash
 $ snd4onnx \
---onnx_file_path input.onnx \
 --remove_node_names node_name_a node_name_b
+--input_onnx_file_path input.onnx \
+--output_onnx_file_path output.onnx
 ```
 
 ## 5. In-script Execution
 ```python
 from snd4onnx import remove
 
-remove(
-    onnx_file_path='input.onnx',
+onnx_graph = remove(
     remove_node_names=['node_name_a', 'node_name_b'],
+    input_onnx_file_path='input.onnx',
+)
+
+# or
+
+onnx_graph = remove(
+    remove_node_names=['node_name_a', 'node_name_b'],
+    onnx_graph=graph,
 )
 ```
 

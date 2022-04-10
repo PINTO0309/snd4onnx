@@ -2,12 +2,11 @@
 
 import os
 import sys
-import shutil
 from argparse import ArgumentParser
 import onnx
 import onnx_graphsurgeon as gs
 from onnx_graphsurgeon.ir.tensor import Variable
-from typing import List
+from typing import Optional, List
 
 class Color:
     BLACK          = '\033[30m'
@@ -39,33 +38,62 @@ OP_TYPES_WITH_AUTOMATIC_ADJUSTMENT_OF_OUTPUT_SHAPE = [
 ]
 
 def remove(
-    onnx_file_path: str,
     remove_node_names: List[str],
-):
+    input_onnx_file_path: Optional[str] = '',
+    output_onnx_file_path: Optional[str] = '',
+    onnx_graph: Optional[onnx.ModelProto] = None,
+) -> onnx.ModelProto:
+
     """
     Parameters
     ----------
-    onnx_file_path: str
-        Input onnx file paths.
-
     remove_node_names: List[str]
         List of OP names to be deleted.\n\
         e.g. remove_node_names = ['op_name1', 'op_name2', 'op_name3', ...]
+
+    input_onnx_file_path: Optional[str]
+        Input onnx file path.\n\
+        Either input_onnx_file_path or onnx_graph must be specified.
+
+    output_onnx_file_path: Optional[str]
+        Output onnx file path.\n\
+        If output_onnx_file_path is not specified, no .onnx file is output.
+
+    onnx_graph: Optional[onnx.ModelProto]
+        onnx.ModelProto.\n\
+        Either input_onnx_file_path or onnx_graph must be specified.\n\
+        onnx_graph If specified, ignore input_onnx_file_path and process onnx_graph.
+
+    Returns
+    -------
+    removed_graph: onnx.ModelProto
+        OP removed onnx ModelProto.
     """
 
-    # file existence check
-    if not os.path.exists(onnx_file_path) or \
-        not os.path.isfile(onnx_file_path) or \
-        not os.path.splitext(onnx_file_path)[-1] == '.onnx':
+    if not input_onnx_file_path and not onnx_graph:
         print(
             f'{Color.RED}ERROR:{Color.RESET} '+
-            f'The specified file (.onnx) does not exist. or not an onnx file. File: {onnx_file_path}'
+            f'One of input_onnx_file_path or onnx_graph must be specified.'
         )
         sys.exit(1)
 
-    work_file_path = shutil.copy(onnx_file_path, f'{os.path.splitext(onnx_file_path)[0]}_removed.onnx')
+    # Loading Graphs
+    # onnx_graph If specified, onnx_graph is processed first
+    graph = None
+    if not onnx_graph:
+        # file existence check
+        if not os.path.exists(input_onnx_file_path) or \
+            not os.path.isfile(input_onnx_file_path) or \
+            not os.path.splitext(input_onnx_file_path)[-1] == '.onnx':
+            print(
+                f'{Color.RED}ERROR:{Color.RESET} '+
+                f'The specified file (.onnx) does not exist. or not an onnx file. File: {input_onnx_file_path}'
+            )
+            sys.exit(1)
+        graph = gs.import_onnx(onnx.load(input_onnx_file_path))
+    else:
+        graph = gs.import_onnx(onnx_graph)
 
-    graph = gs.import_onnx(onnx.load(work_file_path))
     remove_node_names = remove_node_names.split(',')
     remove_nodes = [node for node in graph.nodes if node.name in remove_node_names]
 
@@ -75,7 +103,7 @@ def remove(
             f'{Color.RED}ERROR:{Color.RESET} '+
             'The number of nodes in the graph must be at least 2.'
         )
-        sys.exit(0)
+        sys.exit(1)
 
     # Minimum number of nodes after deletion is at least 1
     if (len(graph.nodes) - len(remove_nodes)) < 1:
@@ -83,7 +111,7 @@ def remove(
             f'{Color.RED}ERROR:{Color.RESET} '+
             'At least one node is required for the graph after OP deletion.'
         )
-        sys.exit(0)
+        sys.exit(1)
 
 
     with graph.node_ids():
@@ -126,7 +154,7 @@ def remove(
                     'It is not possible to delete an OP to which two or more Input OPs of a graph are connected. '+
                     f'node_name: {rmnode.name}'
                 )
-                sys.exit(0)
+                sys.exit(1)
             # If the node to be deleted is responsible for one or more of the final Outputs,
             # delete all of the outputs of the node to be deleted from the final Outputs of the graph.
             # However, at least one final Output of the graph must remain.
@@ -181,7 +209,7 @@ def remove(
                         f'{Color.RED}ERROR:{Color.RESET} '+
                         'OPs connected to the input and output of a graph simultaneously cannot be deleted.'
                     )
-                    sys.exit(0)
+                    sys.exit(1)
                 if len(input_change_var_idxs) < len(rmnode_inputs):
                     # If the number of inputs (Variable) of the OP to be deleted
                     # and the number of inputs (Variable) of the next OP after the deleted OP are different,
@@ -196,7 +224,7 @@ def remove(
                         f'{Color.RED}ERROR:{Color.RESET} '+
                         f'Remove OP inputs: {len(rmnode_inputs)}, Next OP inputs: {len(input_change_var_idxs)}'
                     )
-                    sys.exit(0)
+                    sys.exit(1)
                 # Reset what was the input of the OP to be deleted to the next input of the OP to be deleted.
                 # However, the order of input cannot be verified at all,
                 # because it is set unconditionally from the first to the last.
@@ -277,7 +305,7 @@ def remove(
                         f'{Color.RED}ERROR:{Color.RESET} '+
                         'Remove OP inputs: {len(rmnode_inputs)}, Next OP inputs: {len(input_change_var_idxs)}'
                     )
-                    sys.exit(0)
+                    sys.exit(1)
 
                 for output_change_var_idx, input_change_var_idx in zip(output_change_var_idxs, input_change_var_idxs):
                     rmnode.i().outputs[output_change_var_idx] = rmnode.o().inputs[input_change_var_idx]
@@ -325,17 +353,16 @@ def remove(
             'The input shape of the next OP does not match the output shape. '+
             'Be sure to open the .onnx file to verify the certainty of the geometry.'
         )
-    onnx.save(new_model, f'{work_file_path}')
+
+    # Save
+    if output_onnx_file_path:
+        onnx.save(new_model, f'{output_onnx_file_path}')
+
+    return new_model
 
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument(
-        '--onnx_file_path',
-        type=str,
-        required=True,
-        help='Input onnx file path.'
-    )
     parser.add_argument(
         '--remove_node_names',
         type=str,
@@ -343,11 +370,24 @@ def main():
         nargs='+',
         help='ONNX node name to be deleted.'
     )
+    parser.add_argument(
+        '--input_onnx_file_path',
+        type=str,
+        required=True,
+        help='Input onnx file path.'
+    )
+    parser.add_argument(
+        '--output_onnx_file_path',
+        type=str,
+        required=True,
+        help='Output onnx file path.'
+    )
     args = parser.parse_args()
 
-    remove(
-        onnx_file_path=args.onnx_file_path,
+    onnx_graph = remove(
         remove_node_names=args.remove_node_names,
+        input_onnx_file_path=args.input_onnx_file_path,
+        output_onnx_file_path=args.output_onnx_file_path,
     )
 
 
