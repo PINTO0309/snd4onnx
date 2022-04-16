@@ -94,7 +94,6 @@ def remove(
     else:
         graph = gs.import_onnx(onnx_graph)
 
-    remove_node_names = remove_node_names.split(',')
     remove_nodes = [node for node in graph.nodes if node.name in remove_node_names]
 
     # Minimum number of nodes required is 2 or more
@@ -384,8 +383,10 @@ def main():
     )
     args = parser.parse_args()
 
+    remove_node_names = args.remove_node_names
+
     onnx_graph = remove(
-        remove_node_names=args.remove_node_names,
+        remove_node_names=remove_node_names,
         input_onnx_file_path=args.input_onnx_file_path,
         output_onnx_file_path=args.output_onnx_file_path,
     )
