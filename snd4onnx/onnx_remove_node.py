@@ -42,6 +42,7 @@ def remove(
     input_onnx_file_path: Optional[str] = '',
     output_onnx_file_path: Optional[str] = '',
     onnx_graph: Optional[onnx.ModelProto] = None,
+    non_verbose: Optional[bool] = False,
 ) -> onnx.ModelProto:
 
     """
@@ -63,6 +64,10 @@ def remove(
         onnx.ModelProto.\n\
         Either input_onnx_file_path or onnx_graph must be specified.\n\
         onnx_graph If specified, ignore input_onnx_file_path and process onnx_graph.
+
+    non_verbose: Optional[bool]
+        Do not show all information logs. Only error logs are displayed.\n\
+        Default: False
 
     Returns
     -------
@@ -95,6 +100,14 @@ def remove(
         graph = gs.import_onnx(onnx_graph)
 
     remove_nodes = [node for node in graph.nodes if node.name in remove_node_names]
+
+    remove_output_nodes = [graph_output for graph_output in graph.outputs if graph_output.name in remove_node_names]
+    if (len(graph.outputs) - len(remove_output_nodes)) <= 0:
+        print(
+            f'{Color.RED}ERROR:{Color.RESET} '+
+            'The number of output_nodes in the graph must be at least 1.'
+        )
+        sys.exit(1)
 
     # Minimum number of nodes required is 2 or more
     if len(graph.nodes) < 2:
@@ -252,11 +265,12 @@ def remove(
                                 continue
                             break
 
-                        print(
-                            f'{Color.YELLOW}WARNING:{Color.RESET} '+
-                            'There may be a mismatch in the input/output shapes '+
-                            'before and after the OP to be deleted. Check the graph carefully.'
-                        )
+                        if not non_verbose:
+                            print(
+                                f'{Color.YELLOW}WARNING:{Color.RESET} '+
+                                'There may be a mismatch in the input/output shapes '+
+                                'before and after the OP to be deleted. Check the graph carefully.'
+                            )
 
                         # Forces the shape of the Output of the next OP to fit the input shape of the OP to be deleted.
                         if change_output_shape is not None:
@@ -315,12 +329,13 @@ def remove(
             if rmnode_is_first_op and rmnode_is_last_op:
                 # If it is both the first and the last OP,
                 # it is considered too complicated to process and is warn for the time being.
-                print(
-                    f'{Color.YELLOW}WARNING:{Color.RESET} '+
-                    'Since the OP to be deleted is both the beginning and the end of the graph, '+
-                    'it is treated as unprocessable at this time. '+
-                    'Carefully check the geometry of the generated model.'
-                )
+                if not non_verbose:
+                    print(
+                        f'{Color.YELLOW}WARNING:{Color.RESET} '+
+                        'Since the OP to be deleted is both the beginning and the end of the graph, '+
+                        'it is treated as unprocessable at this time. '+
+                        'Carefully check the geometry of the generated model.'
+                    )
 
     graph.cleanup().toposort()
 
@@ -342,6 +357,11 @@ def remove(
         graph.inputs.remove(remove_graph_input)
     graph.cleanup().toposort()
 
+    # Delete output nodes
+    graph.outputs = [graph_output for graph_output in graph.outputs if graph_output.name not in remove_node_names]
+
+    graph.cleanup().toposort()
+
     new_model = None
     try:
         new_model = onnx.shape_inference.infer_shapes(gs.export_onnx(graph))
@@ -356,6 +376,9 @@ def remove(
     # Save
     if output_onnx_file_path:
         onnx.save(new_model, f'{output_onnx_file_path}')
+
+    if not non_verbose:
+        print(f'{Color.GREEN}INFO:{Color.RESET} Finish!')
 
     return new_model
 
@@ -381,14 +404,23 @@ def main():
         required=True,
         help='Output onnx file path.'
     )
+    parser.add_argument(
+        '--non_verbose',
+        action='store_true',
+        help='Do not show all information logs. Only error logs are displayed.'
+    )
     args = parser.parse_args()
 
     remove_node_names = args.remove_node_names
+    input_onnx_file_path = args.input_onnx_file_path
+    output_onnx_file_path = args.output_onnx_file_path
+    non_verbose = args.non_verbose
 
     onnx_graph = remove(
         remove_node_names=remove_node_names,
-        input_onnx_file_path=args.input_onnx_file_path,
-        output_onnx_file_path=args.output_onnx_file_path,
+        input_onnx_file_path=input_onnx_file_path,
+        output_onnx_file_path=output_onnx_file_path,
+        non_verbose=non_verbose,
     )
 
 

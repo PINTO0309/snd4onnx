@@ -25,14 +25,15 @@ https://github.com/PINTO0309/simple-onnx-processing-tools#docker
 $ snd4onnx -h
 
 usage:
-  snd4onnx [-h]
+    snd4onnx [-h]
     --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
     --input_onnx_file_path INPUT_ONNX_FILE_PATH
     --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
+    [--non_verbose]
 
 optional arguments:
   -h, --help
-        show this help message and exit
+        show this help message and exit.
 
   --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
         ONNX node name to be deleted.
@@ -42,6 +43,9 @@ optional arguments:
 
   --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
         Output onnx file path.
+
+  --non_verbose
+        Do not show all information logs. Only error logs are displayed.
 ```
 
 ## 3. In-script Usage
@@ -55,7 +59,8 @@ remove(
     remove_node_names: List[str],
     input_onnx_file_path: Union[str, NoneType] = '',
     output_onnx_file_path: Union[str, NoneType] = '',
-    onnx_graph: Union[onnx.onnx_ml_pb2.ModelProto, NoneType] = None
+    onnx_graph: Union[onnx.onnx_ml_pb2.ModelProto, NoneType] = None,
+    non_verbose: Union[bool, NoneType] = False
 ) -> onnx.onnx_ml_pb2.ModelProto
 
     Parameters
@@ -76,6 +81,10 @@ remove(
         onnx.ModelProto.
         Either input_onnx_file_path or onnx_graph must be specified.
         onnx_graph If specified, ignore input_onnx_file_path and process onnx_graph.
+
+    non_verbose: Optional[bool]
+        Do not show all information logs. Only error logs are displayed.
+        Default: False
 
     Returns
     -------

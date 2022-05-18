@@ -6,3 +6,5 @@ snd4onnx.egg-info/
 snd4onnx/debug/
 snd4onnx/saved_model/
 __pycache__/
+
+*.onnx
