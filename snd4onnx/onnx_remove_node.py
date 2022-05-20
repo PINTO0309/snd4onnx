@@ -316,7 +316,7 @@ def remove(
                     )
                     print(
                         f'{Color.RED}ERROR:{Color.RESET} '+
-                        'Remove OP inputs: {len(rmnode_inputs)}, Next OP inputs: {len(input_change_var_idxs)}'
+                        f'Remove OP inputs: {len(rmnode_inputs)}, Next OP inputs: {len(input_change_var_idxs)}'
                     )
                     sys.exit(1)
 
