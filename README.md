@@ -100,7 +100,7 @@ remove(
 ## 4. CLI Execution
 ```bash
 $ snd4onnx \
---remove_node_names node_name_a node_name_b
+--remove_node_names node_name_a node_name_b \
 --input_onnx_file_path input.onnx \
 --output_onnx_file_path output.onnx
 ```
