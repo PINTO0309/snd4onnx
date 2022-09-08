@@ -26,30 +26,30 @@ $ pip install -U onnx \
 https://github.com/PINTO0309/simple-onnx-processing-tools#docker
 
 ## 2. CLI Usage
-```bash
+```
 $ snd4onnx -h
 
 usage:
     snd4onnx [-h]
-    --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
-    --input_onnx_file_path INPUT_ONNX_FILE_PATH
-    --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
-    [--non_verbose]
+    -rn REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
+    -if INPUT_ONNX_FILE_PATH
+    -of OUTPUT_ONNX_FILE_PATH
+    [-n]
 
 optional arguments:
   -h, --help
         show this help message and exit.
 
-  --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
+  -rn REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...], --remove_node_names REMOVE_NODE_NAMES [REMOVE_NODE_NAMES ...]
         ONNX node name to be deleted.
 
-  --input_onnx_file_path INPUT_ONNX_FILE_PATH
+  -if INPUT_ONNX_FILE_PATH, --input_onnx_file_path INPUT_ONNX_FILE_PATH
         Input onnx file path.
 
-  --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
+  -of OUTPUT_ONNX_FILE_PATH, --output_onnx_file_path OUTPUT_ONNX_FILE_PATH
         Output onnx file path.
 
-  --non_verbose
+  -n, --non_verbose
         Do not show all information logs. Only error logs are displayed.
 ```
 

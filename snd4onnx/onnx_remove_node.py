@@ -386,6 +386,7 @@ def remove(
 def main():
     parser = ArgumentParser()
     parser.add_argument(
+        '-rn',
         '--remove_node_names',
         type=str,
         required=True,
@@ -393,18 +394,21 @@ def main():
         help='ONNX node name to be deleted.'
     )
     parser.add_argument(
+        '-if',
         '--input_onnx_file_path',
         type=str,
         required=True,
         help='Input onnx file path.'
     )
     parser.add_argument(
+        '-of',
         '--output_onnx_file_path',
         type=str,
         required=True,
         help='Output onnx file path.'
     )
     parser.add_argument(
+        '-n',
         '--non_verbose',
         action='store_true',
         help='Do not show all information logs. Only error logs are displayed.'
